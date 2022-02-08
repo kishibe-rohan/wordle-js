@@ -1847,17 +1847,6 @@ function updateGrid() {
   }
 
   checkWord(row, currentGuess, true);
-  if (correctWord === currentGuess) {
-    alert("Congratulations!! Play again");
-    buildGrid();
-    return;
-  }
-
-  if (guesses.length >= 5) {
-    alert("Play again!!");
-    buildGrid();
-    return;
-  }
 }
 
 function checkWord(row, guess, isCurrent) {
@@ -1882,7 +1871,7 @@ function getBgColor(guess, i) {
 
   if (
     guessedLetter === undefined ||
-    correctLetter.indexOf(guessedLetter) === -1
+    correctWord.indexOf(guessedLetter) === -1
   ) {
     return "#212121";
   }
