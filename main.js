@@ -2017,6 +2017,34 @@ function buildKeyboardRow(letters, isLast) {
   keyboard.appendChild(row);
 }
 
+//helper function to pick color while updating keyboard
+function getBetterColor(a, b) {
+  if (a === GREEN || b === GREEN) {
+    return GREEN;
+  }
+  if (a === YELLOW || b === YELLOW) {
+    return YELLOW;
+  }
+  return GREY;
+}
+
+function updateKeyboard() {
+  let bestColors = new Map();
+  for (let guess of guesses) {
+    for (let i = 0; i < guess.length; i++) {
+      let color = getBgColor(guess, i);
+      let key = guess[i];
+      let bestColor = bestColors.get(key);
+      bestColors.set(key, getBetterColor(color, bestColor));
+    }
+  }
+
+  for (let [key, button] of keyboardButtons) {
+    button.style.backgroundColor = bestColors.get(key);
+    button.style.borderColor = bestColors.get(key);
+  }
+}
+
 function animatePress(index) {
   let rowIndex = guesses.length;
   let row = grid.children[rowIndex];
