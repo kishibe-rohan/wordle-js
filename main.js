@@ -1938,8 +1938,8 @@ function checkWord(row, guess, isCurrent) {
       front.style.borderColor = MIDDLEGREY;
     }
 
-    back.style.backgroundColor = getBgColor(attempt, i);
-    back.style.borderColor = getBgColor(attempt, i);
+    back.style.backgroundColor = getBgColor(guess, i);
+    back.style.borderColor = getBgColor(guess, i);
 
     if (isCurrent) {
       cell.classList.add("solved");
@@ -1982,7 +1982,7 @@ function buildKeyboardRow(letters, isLast) {
     button.className = "button";
     button.textContent = "Enter";
     button.style.backgroundColor = LIGHTGREY;
-    button.onClick = () => {
+    button.onclick = () => {
       handleKey("enter");
     };
 
@@ -1994,7 +1994,7 @@ function buildKeyboardRow(letters, isLast) {
     button.className = "button";
     button.textContent = letter;
     button.style.backgroundColor = LIGHTGREY;
-    button.onClick = () => {
+    button.onclick = () => {
       handleKey(letter);
     };
 
@@ -2007,7 +2007,7 @@ function buildKeyboardRow(letters, isLast) {
     button.className = "button";
     button.textContent = "Backspace";
     button.style.backgroundColor = LIGHTGREY;
-    button.onClick = () => {
+    button.onclick = () => {
       handleKey("backspace");
     };
 
