@@ -1,3 +1,5 @@
+"use strict";
+
 let wordList = [
   "which",
   "there",
@@ -1791,38 +1793,85 @@ let guesses = [];
 let randomIndex = Math.floor(Math.random() * wordList.length);
 let correctWord = wordList[randomIndex];
 
+let BLACK = "#111";
+let GREY = "#212121";
+let MIDDLEGREY = "#666";
+let LIGHTGREY = "#888";
+let GREEN = "#538d4e";
+let YELLOW = "#b59f3b";
+
+let isAnimating = false;
+
 let grid = document.getElementById("grid");
+let keyboard = document.getElementById("keyboard");
+let keyboardButtons = new Map();
+
+loadGame();
 buildGrid();
+buildKeyboard();
 updateGrid();
-window.addEventListener("keydown", handleInput);
+updateKeyboard();
 
-function handleInput(e) {
-  let letter = e.key.toLowerCase();
+window.addEventListener("keydown", handleKeyDown);
 
-  //submit
+function handleKeyDown(e) {
+  if (e.ctrlKey || e.metaKey || e.altKey) {
+    return;
+  }
+  handleKey(e.key);
+}
+
+//handle user input
+function handleKey(key) {
+  if (guesses.length === 6) return;
+
+  if (isAnimating) return;
+
+  let letter = key.toLowerCase();
   if (letter === "enter") {
+    //guess must be of 5 letters
     if (currentGuess.length < 5) return;
 
+    //invalid word
     if (!wordList.includes(currentGuess)) {
-      alert("Not in WordList");
+      alert("Word not present in dictionary");
       return;
+    }
+
+    //lost game
+    if (guesses.length === 5 && currentGuess !== correctWord) {
+      alert(`The word was: ${correctWord}..Refresh to play again!`);
     }
 
     guesses.push(currentGuess);
     currentGuess = "";
-  } else if (letter === "backspace") {
-    //remove last letter
+    updateKeyboard();
+    saveGame();
+    pauseInput();
+  }
+
+  //delete letter
+  else if (letter === "backspace") {
     currentGuess = currentGuess.slice(0, currentGuess.length - 1);
   }
 
-  //validate input is a letter
-  else if (/[a-z]/.test(letter)) {
+  //add to current word
+  else if (/^[a-z]$/.test(letter)) {
     if (currentGuess.length < 5) {
       currentGuess += letter;
+      animatePress(currentGuess.length - 1);
     }
   }
 
   updateGrid();
+}
+
+//pause inputs while amidst animation
+function pauseInput() {
+  isAnimating = true;
+  setTimeout(() => {
+    isAnimating = false;
+  }, 2000);
 }
 
 function buildGrid() {
@@ -1831,7 +1880,18 @@ function buildGrid() {
     for (let j = 0; j < 5; j++) {
       let cell = document.createElement("div");
       cell.className = "cell";
-      cell.textContent = "";
+      let front = document.createElement("div");
+      front.className = "front";
+      let back = document.createElement("div");
+      back.className = "back";
+      let surface = document.createElement("div");
+      surface.className = "surface";
+
+      surface.style.transitionDelay = j * 300 + "ms";
+      surface.appendChild(front);
+      surface.appendChild(back);
+
+      cell.appendChild(surface);
       row.appendChild(cell);
     }
 
@@ -1840,27 +1900,51 @@ function buildGrid() {
 }
 
 function updateGrid() {
-  let row = grid.firstChild;
-  for (let guess of guesses) {
-    checkWord(row, guess, false);
-    row = row.nextSibling;
-  }
+  for (let i = 0; i < 6; i++) {
+    let row = grid.children[i];
 
-  checkWord(row, currentGuess, true);
+    //is not current row
+    if (i < guesses.length) {
+      checkWord(row, guesses[i], true);
+    } //is current row
+    else if (i === guesses.length) {
+      checkWord(row, currentGuess, false);
+    } else {
+      checkWord(row, "", false);
+    }
+  }
 }
 
 function checkWord(row, guess, isCurrent) {
   for (let i = 0; i < 5; i++) {
     let cell = row.children[i];
+    let surface = cell.firstChild;
+    let front = surface.children[0];
+    let back = surface.children[1];
+
     if (guess[i] !== undefined) {
-      cell.textContent = guess[i];
+      front.textContent = guess[i];
+      back.textContent = guess[i];
     } else {
-      cell.innerHTML = '<div style="opacity: 0">X</div>';
+      front.innerHTML = '<div style="opacity: 0">X</div>';
+      back.innerHTML = '<div style="opacity: 0">X</div>';
+      clearAnimation(cell);
     }
+
+    front.style.backgroundColor = BLACK;
+    front.style.borderColor = "";
+
+    if (guess[i] !== undefined) {
+      front.style.borderColor = MIDDLEGREY;
+    }
+
+    back.style.backgroundColor = getBgColor(attempt, i);
+    back.style.borderColor = getBgColor(attempt, i);
+
     if (isCurrent) {
-      cell.style.backgroundColor = "#111";
+      cell.classList.add("solved");
     } else {
-      cell.style.backgroundColor = getBgColor(guess, i);
+      cell.classList.remove("solved");
     }
   }
 }
@@ -1869,16 +1953,109 @@ function getBgColor(guess, i) {
   let correctLetter = correctWord[i];
   let guessedLetter = guess[i];
 
+  //letter not in word
   if (
     guessedLetter === undefined ||
     correctWord.indexOf(guessedLetter) === -1
   ) {
-    return "#212121";
+    return GREY;
   }
 
+  //correct letter at correct position
   if (correctLetter === guessedLetter) {
-    return "#538d4e";
+    return GREEN;
   }
 
-  return "#b59f3b";
+  return YELLOW;
+}
+
+function buildKeyboard() {
+  buildKeyboardRow("qwertyuiop", false);
+  buildKeyboardRow("asdfghjkl", false);
+  buildKeyboardRow("zxcvbnm", true);
+}
+
+function buildKeyboardRow(letters, isLast) {
+  let row = document.createElement("div");
+  if (isLast) {
+    let button = document.createElement("button");
+    button.className = "button";
+    button.textContent = "Enter";
+    button.style.backgroundColor = LIGHTGREY;
+    button.onClick = () => {
+      handleKey("enter");
+    };
+
+    row.appendChild(button);
+  }
+
+  for (let letter of letters) {
+    let button = document.createElement("button");
+    button.className = "button";
+    button.textContent = letter;
+    button.style.backgroundColor = LIGHTGREY;
+    button.onClick = () => {
+      handleKey(letter);
+    };
+
+    keyboardButtons.set(letter, button);
+    row.appendChild(button);
+  }
+
+  if (isLast) {
+    let button = document.createElement("button");
+    button.className = "button";
+    button.textContent = "Backspace";
+    button.style.backgroundColor = LIGHTGREY;
+    button.onClick = () => {
+      handleKey("backspace");
+    };
+
+    row.appendChild(button);
+  }
+
+  keyboard.appendChild(row);
+}
+
+function animatePress(index) {
+  let rowIndex = guesses.length;
+  let row = grid.children[rowIndex];
+  let cell = row.children[index];
+
+  cell.style.animationName = "press";
+  cell.style.animationDuration = "100ms";
+  cell.style.animationTimingFunction = "ease-out";
+}
+function clearAnimation(cell) {
+  cell.style.animationName = "";
+  cell.style.animationDuration = "";
+  cell.style.animationTimingFunction = "";
+}
+
+function loadGame() {
+  let data;
+  try {
+    data = JSON.parse(localStorage.getItem("wordledata"));
+  } catch (err) {
+    console.log(err);
+  }
+
+  if (data != null) {
+    if (data.correctWord === correctWord) {
+      guesses = data.guesses;
+    }
+  }
+}
+
+function saveGame() {
+  let data = JSON.stringify({
+    correctWord,
+    guesses,
+  });
+
+  try {
+    localStorage.setItem("wordledata", data);
+  } catch (err) {
+    console.log(err);
+  }
 }
